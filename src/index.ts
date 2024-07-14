@@ -349,6 +349,11 @@ app.post('/teams', async (req: Request, res: Response) => {
  *         schema:
  *           type: integer
  *         description: The team ID
+ *       - in: query
+ *         name: country
+ *         schema:
+ *           type: string
+ *         description: The country name to filter the team
  *     responses:
  *       200:
  *         description: A team
@@ -368,8 +373,15 @@ app.post('/teams', async (req: Request, res: Response) => {
  */
 app.get('/teams/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
+  const { country } = req.query;
+
   try {
     const team = await db.one('SELECT * FROM teams WHERE id = $1', [id]);
+
+    if (country && team.country.toLowerCase() !== (country as string).toLowerCase()) {
+      return res.status(404).json({ error: 'Team not found in the specified country' });
+    }
+
     res.json(team);
   } catch (err) {
     if (err instanceof Error) {
