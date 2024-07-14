@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import db from './db';
+import setupSwagger from './swagger';
 
 dotenv.config();
 
@@ -9,7 +10,28 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// Get all leagues
+setupSwagger(app);
+
+/**
+ * @swagger
+ * /leagues:
+ *   get:
+ *     summary: Retrieve a list of leagues
+ *     responses:
+ *       200:
+ *         description: A list of leagues
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   name:
+ *                     type: string
+ */
 app.get('/leagues', async (req, res) => {
   try {
     const leagues = await db.any('SELECT * FROM leagues');
@@ -23,7 +45,33 @@ app.get('/leagues', async (req, res) => {
   }
 });
 
-// Create a new league
+/**
+ * @swagger
+ * /leagues:
+ *   post:
+ *     summary: Create a new league
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: The created league
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 name:
+ *                   type: string
+ */
 app.post('/leagues', async (req, res) => {
   const { name } = req.body;
   try {
