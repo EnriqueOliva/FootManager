@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import axios from 'axios';
 import db from './db';
 import setupSwagger from './swagger';
 
@@ -16,6 +17,28 @@ setupSwagger(app);
 
 // Secret key for JWT
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
+const API_FOOTBALL_KEY = process.env.API_FOOTBALL_KEY || 'your_api_football_key';
+
+// Function to validate team using API-Football
+const validateTeam = async (name: string, country: string) => {
+  try {
+    const response = await axios.get('https://v3.football.api-sports.io/teams', {
+      headers: {
+        'x-rapidapi-host': 'v3.football.api-sports.io',
+        'x-rapidapi-key': API_FOOTBALL_KEY
+      },
+      params: {
+        search: name
+      }
+    });
+
+    const teams = response.data.response;
+    return teams.some((team: any) => team.team.name.toLowerCase() === name.toLowerCase() && team.team.country.toLowerCase() === country.toLowerCase());
+  } catch (error: any) {
+    console.error('Error validating team:', error.response ? error.response.data : error.message);
+    return false;
+  }
+};
 
 /**
  * @swagger
@@ -296,6 +319,10 @@ app.get('/teams', async (req: Request, res: Response) => {
 app.post('/teams', async (req: Request, res: Response) => {
   const { name, country, league_id } = req.body;
   try {
+    const isValidTeam = await validateTeam(name, country);
+    if (!isValidTeam) {
+      return res.status(400).json({ error: 'Invalid team' });
+    }
     const newTeam = await db.one(
       'INSERT INTO teams(name, country, league_id) VALUES($1, $2, $3) RETURNING *',
       [name, country, league_id]
@@ -459,3 +486,5 @@ app.delete('/teams/:id', async (req: Request, res: Response) => {
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
+
+export default app;
