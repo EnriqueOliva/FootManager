@@ -1,48 +1,41 @@
 import request from 'supertest';
 import { expect } from 'chai';
 import app from '../src/index';
-import db from '../src/db'; // Ensure the database connection is imported
-import bcrypt from 'bcryptjs'; // Import bcryptjs
+import bcrypt from 'bcryptjs';
+import { Sequelize, Op } from 'sequelize';
+import { Sequelize as SequelizeTS } from 'sequelize-typescript';
+import User from '../src/models/User';
+import League from '../src/models/League';
+import Team from '../src/models/Team';
+
+const sequelize = new SequelizeTS({
+  dialect: 'postgres',
+  host: process.env.DB_HOST,
+  port: Number(process.env.DB_PORT),
+  database: process.env.DB_DATABASE,
+  username: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  models: [User, League, Team],
+});
 
 before(async () => {
-  // Create the users table and add testuser
-  await db.none(`
-    CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
-      username VARCHAR(50) UNIQUE NOT NULL,
-      password VARCHAR(255) NOT NULL,
-      role VARCHAR(50) NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS leagues (
-      id SERIAL PRIMARY KEY,
-      name VARCHAR(50) NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS teams (
-      id SERIAL PRIMARY KEY,
-      name VARCHAR(50) NOT NULL,
-      country VARCHAR(50) NOT NULL,
-      league_id INTEGER REFERENCES leagues(id)
-    );
-  `);
+  // Sync all models and create the necessary tables
+  await sequelize.sync({ force: true });
 
   // Insert test user for login test
   const hashedPassword = await bcrypt.hash('testpassword', 10);
-  await db.none('INSERT INTO users(username, password, role) VALUES($1, $2, $3) ON CONFLICT (username) DO NOTHING', ['testuser', hashedPassword, 'admin']);
+  await User.create({ username: 'testuser', password: hashedPassword, role: 'admin' });
 });
 
 after(async () => {
-  // Drop the teams table first because it has a foreign key dependency on the leagues table
-  await db.none(`
-    DROP TABLE IF EXISTS teams;
-    DROP TABLE IF EXISTS leagues;
-    DROP TABLE IF EXISTS users;
-  `);
+  // Drop all tables
+  await sequelize.drop();
 });
 
 describe('API Tests', () => {
   beforeEach(async () => {
     // Clean up before each test to ensure unique usernames
-    await db.none('DELETE FROM users WHERE username != $1', ['testuser']);
+    await User.destroy({ where: { username: { [Op.ne]: 'testuser' } } });
   });
 
   it('should register a new user', async () => {
