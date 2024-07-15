@@ -110,6 +110,15 @@ describe('API Tests', () => {
     expect(response.body).to.have.property('token');
   });
 
+  it('should not log in with invalid credentials', async () => {
+    const response = await request(app)
+      .post('/login')
+      .send({ username: 'testuser', password: 'wrongpassword' });
+
+    expect(response.status).to.equal(400);
+    expect(response.body.error).to.equal('Invalid credentials');
+  });
+
   // League tests
   it('should create a new league', async () => {
     const response = await request(app)
