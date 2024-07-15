@@ -82,8 +82,11 @@ app.post('/register', async (req: Request, res: Response) => {
       [username, hashedPassword, role]
     );
     res.status(201).json(newUser);
-  } catch (err) {
-    if (err instanceof Error) {
+  } catch (err: any) {
+    console.error('Error during registration:', err);
+    if (err.code === '23505') {  // Unique violation error code for Postgres
+      res.status(409).json({ error: 'Username already exists' });
+    } else if (err instanceof Error) {
       res.status(500).json({ error: err.message });
     } else {
       res.status(500).json({ error: 'Unknown error' });
@@ -121,14 +124,23 @@ app.post('/register', async (req: Request, res: Response) => {
 app.post('/login', async (req: Request, res: Response) => {
   const { username, password } = req.body;
   try {
-    const user = await db.one('SELECT * FROM users WHERE username = $1', [username]);
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
+    const user = await db.oneOrNone('SELECT * FROM users WHERE username = $1', [username]);
+    
+    if (!user) {
+      console.log(`User with username ${username} not found.`);
       return res.status(400).json({ error: 'Invalid credentials' });
     }
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      console.log(`Invalid password for user ${username}.`);
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
+
     const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
     res.json({ token });
   } catch (err) {
+    console.error('Error during login:', err);
     if (err instanceof Error) {
       res.status(500).json({ error: err.message });
     } else {
