@@ -260,6 +260,48 @@ app.post('/leagues', async (req: Request, res: Response) => {
 
 /**
  * @swagger
+ * /leagues/{id}:
+ *   delete:
+ *     summary: Delete a league by ID
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The league ID
+ *     responses:
+ *       200:
+ *         description: The deleted league
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 name:
+ *                   type: string
+ */
+app.delete('/leagues/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const league = await League.findByPk(id);
+    if (!league) {
+      console.log(`League with ID ${id} not found.`);
+      return res.status(404).json({ error: 'League not found' });
+    }
+    await league.destroy();
+    console.log(`Deleted league with ID ${id}.`);
+    res.json(league);
+  } catch (err: unknown) {
+    console.error('Error deleting league:', err instanceof Error ? err.message : err);
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });
+  }
+});
+
+/**
+ * @swagger
  * /teams:
  *   get:
  *     summary: Retrieve a list of teams
