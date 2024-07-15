@@ -18,24 +18,66 @@ const sequelize = new SequelizeTS({
   models: [User, League, Team],
 });
 
-before(async () => {
-  // Sync all models and create the necessary tables
-  await sequelize.sync({ force: true });
+const dropAllTablesAndSequences = async () => {
+  console.log('Dropping all tables and sequences...');
+  try {
+    await sequelize.query('DROP TABLE IF EXISTS "Teams" CASCADE');
+    await sequelize.query('DROP TABLE IF EXISTS "Leagues" CASCADE');
+    await sequelize.query('DROP TABLE IF EXISTS "Users" CASCADE');
+    await sequelize.query('DROP SEQUENCE IF EXISTS "Users_id_seq" CASCADE');
+    await sequelize.query('DROP SEQUENCE IF EXISTS "Leagues_id_seq" CASCADE');
+    await sequelize.query('DROP SEQUENCE IF EXISTS "Teams_id_seq" CASCADE');
+    console.log('All tables and sequences dropped.');
+  } catch (error) {
+    console.error('Error dropping tables and sequences:', error);
+  }
+};
 
-  // Insert test user for login test
-  const hashedPassword = await bcrypt.hash('testpassword', 10);
-  await User.create({ username: 'testuser', password: hashedPassword, role: 'admin' });
+const syncAllTables = async () => {
+  console.log('Syncing all tables...');
+  try {
+    await sequelize.sync({ force: true });
+    console.log('All tables synced.');
+  } catch (error) {
+    console.error('Error syncing tables:', error);
+  }
+};
+
+before(async () => {
+  try {
+    await dropAllTablesAndSequences();
+    await syncAllTables();
+
+    console.log('Inserting test user...');
+    const hashedPassword = await bcrypt.hash('testpassword', 10);
+    await User.create({ username: 'testuser', password: hashedPassword, role: 'admin' });
+    console.log('Test user inserted.');
+  } catch (error) {
+    console.error('Error in before hook:', error);
+    throw error; // Ensure the test stops if setup fails
+  }
 });
 
 after(async () => {
-  // Drop all tables
-  await sequelize.drop();
+  try {
+    await dropAllTablesAndSequences();
+    console.log('All tables and sequences dropped after tests.');
+  } catch (error) {
+    console.error('Error in after hook:', error);
+    throw error; // Ensure the test stops if teardown fails
+  }
 });
 
 describe('API Tests', () => {
   beforeEach(async () => {
-    // Clean up before each test to ensure unique usernames
-    await User.destroy({ where: { username: { [Op.ne]: 'testuser' } } });
+    try {
+      console.log('Cleaning up before each test...');
+      await User.destroy({ where: { username: { [Op.ne]: 'testuser' } } });
+      console.log('Cleaned up before each test.');
+    } catch (error) {
+      console.error('Error in beforeEach hook:', error);
+      throw error; // Ensure the test stops if cleanup fails
+    }
   });
 
   it('should register a new user', async () => {
