@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
-import sequelize from './db'; // Updated import
+import sequelize from './db';
 import setupSwagger from './swagger';
 import User from './models/User';
 import League from './models/League';
@@ -97,7 +97,7 @@ app.post('/register', async (req: Request, res: Response) => {
     res.status(201).json(newUser);
   } catch (err: any) {
     console.error('Error during registration:', err);
-    if (err.name === 'SequelizeUniqueConstraintError') {  // Unique violation error
+    if (err.name === 'SequelizeUniqueConstraintError') {
       res.status(409).json({ error: 'Username already exists' });
     } else if (err instanceof Error) {
       res.status(500).json({ error: err.message });
