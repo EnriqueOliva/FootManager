@@ -8,11 +8,19 @@ import setupSwagger from './swagger';
 import User from './models/User';
 import League from './models/League';
 import Team from './models/Team';
+import morgan from 'morgan';
+import compression from 'compression';
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Use morgan for logging requests
+app.use(morgan('combined'));
+
+// Use compression for response compression
+app.use(compression());
 
 app.use(express.json());
 
