@@ -56,97 +56,36 @@ const validateTeam = async (name: string, country: string) => {
   }
 };
 
-/**
- * @swagger
- * /register:
- *   post:
- *     summary: Register a new user
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               username:
- *                 type: string
- *               password:
- *                 type: string
- *               role:
- *                 type: string
- *     responses:
- *       201:
- *         description: The created user
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: integer
- *                 username:
- *                   type: string
- *                 role:
- *                   type: string
- */
+// User registration endpoint
 app.post('/register', async (req: Request, res: Response) => {
   const { username, password, role } = req.body;
   try {
+    const existingUser = await User.findOne({ where: { username } });
+    if (existingUser) {
+      return res.status(409).json({ error: 'Username already exists' });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = await User.create({ username, password: hashedPassword, role });
     res.status(201).json(newUser);
   } catch (err: any) {
     console.error('Error during registration:', err);
-    if (err.name === 'SequelizeUniqueConstraintError') {
-      res.status(409).json({ error: 'Username already exists' });
-    } else if (err instanceof Error) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.status(500).json({ error: 'Unknown error' });
-    }
+    res.status(500).json({ error: err.message || 'Unknown error' });
   }
 });
 
-/**
- * @swagger
- * /login:
- *   post:
- *     summary: Log in a user
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               username:
- *                 type: string
- *               password:
- *                 type: string
- *     responses:
- *       200:
- *         description: The authenticated user
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 token:
- *                   type: string
- */
+// User login endpoint
 app.post('/login', async (req: Request, res: Response) => {
   const { username, password } = req.body;
   try {
     const user = await User.findOne({ where: { username } });
-    
+
     if (!user) {
-      console.log(`User with username ${username} not found.`);
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      console.log(`Invalid password for user ${username}.`);
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
@@ -177,41 +116,7 @@ const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-/**
- * @swagger
- * /protected:
- *   get:
- *     summary: A protected route
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Access granted
- */
-app.get('/protected', authenticateJWT, (req: Request, res: Response) => {
-  res.send('Access granted');
-});
-
-/**
- * @swagger
- * /leagues:
- *   get:
- *     summary: Retrieve a list of leagues
- *     responses:
- *       200:
- *         description: A list of leagues
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: integer
- *                   name:
- *                     type: string
- */
+// Retrieve a list of leagues
 app.get('/leagues', async (req: Request, res: Response) => {
   try {
     const leagues = await League.findAll();
@@ -225,34 +130,8 @@ app.get('/leagues', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * @swagger
- * /leagues:
- *   post:
- *     summary: Create a new league
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *     responses:
- *       201:
- *         description: The created league
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: integer
- *                 name:
- *                   type: string
- */
-app.post('/leagues', async (req: Request, res: Response) => {
+// Create a new league
+app.post('/leagues', authenticateJWT, async (req: Request, res: Response) => {
   const { name } = req.body;
   try {
     const newLeague = await League.create({ name });
@@ -266,41 +145,15 @@ app.post('/leagues', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * @swagger
- * /leagues/{id}:
- *   delete:
- *     summary: Delete a league by ID
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: The league ID
- *     responses:
- *       200:
- *         description: The deleted league
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: integer
- *                 name:
- *                   type: string
- */
-app.delete('/leagues/:id', async (req: Request, res: Response) => {
+// Delete a league by ID
+app.delete('/leagues/:id', authenticateJWT, async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
     const league = await League.findByPk(id);
     if (!league) {
-      console.log(`League with ID ${id} not found.`);
       return res.status(404).json({ error: 'League not found' });
     }
     await league.destroy();
-    console.log(`Deleted league with ID ${id}.`);
     res.json(league);
   } catch (err: unknown) {
     console.error('Error deleting league:', err instanceof Error ? err.message : err);
@@ -308,30 +161,7 @@ app.delete('/leagues/:id', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * @swagger
- * /teams:
- *   get:
- *     summary: Retrieve a list of teams
- *     responses:
- *       200:
- *         description: A list of teams
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: integer
- *                   name:
- *                     type: string
- *                   country:
- *                     type: string
- *                   leagueId:
- *                     type: integer
- */
+// Retrieve a list of teams
 app.get('/teams', async (req: Request, res: Response) => {
   try {
     const teams = await Team.findAll();
@@ -345,42 +175,8 @@ app.get('/teams', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * @swagger
- * /teams:
- *   post:
- *     summary: Create a new team
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               country:
- *                 type: string
- *               leagueId:
- *                 type: integer
- *     responses:
- *       201:
- *         description: The created team
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: integer
- *                 name:
- *                   type: string
- *                 country:
- *                   type: string
- *                 leagueId:
- *                   type: integer
- */
-app.post('/teams', async (req: Request, res: Response) => {
+// Create a new team
+app.post('/teams', authenticateJWT, async (req: Request, res: Response) => {
   const { name, country, leagueId } = req.body;
   try {
     const isValidTeam = await validateTeam(name, country);
@@ -398,40 +194,7 @@ app.post('/teams', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * @swagger
- * /teams/{id}:
- *   get:
- *     summary: Get a team by ID
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: The team ID
- *       - in: query
- *         name: country
- *         schema:
- *           type: string
- *         description: The country name to filter the team
- *     responses:
- *       200:
- *         description: A team
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: integer
- *                 name:
- *                   type: string
- *                 country:
- *                   type: string
- *                 leagueId:
- *                   type: integer
- */
+// Get a team by ID
 app.get('/teams/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
   const { country } = req.query;
@@ -457,49 +220,8 @@ app.get('/teams/:id', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * @swagger
- * /teams/{id}:
- *   put:
- *     summary: Update a team by ID
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: The team ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               country:
- *                 type: string
- *               leagueId:
- *                 type: integer
- *     responses:
- *       200:
- *         description: The updated team
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: integer
- *                 name:
- *                   type: string
- *                 country:
- *                   type: string
- *                 leagueId:
- *                   type: integer
- */
-app.put('/teams/:id', async (req: Request, res: Response) => {
+// Update a team by ID
+app.put('/teams/:id', authenticateJWT, async (req: Request, res: Response) => {
   const { id } = req.params;
   const { name, country, leagueId } = req.body;
   try {
@@ -522,36 +244,8 @@ app.put('/teams/:id', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * @swagger
- * /teams/{id}:
- *   delete:
- *     summary: Delete a team by ID
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: The team ID
- *     responses:
- *       200:
- *         description: The deleted team
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: integer
- *                 name:
- *                   type: string
- *                 country:
- *                   type: string
- *                 leagueId:
- *                   type: integer
- */
-app.delete('/teams/:id', async (req: Request, res: Response) => {
+// Delete a team by ID
+app.delete('/teams/:id', authenticateJWT, async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
     const team = await Team.findByPk(id);
@@ -563,6 +257,7 @@ app.delete('/teams/:id', async (req: Request, res: Response) => {
     await Team.destroy({ where: { id } });
     res.json(team);
   } catch (err) {
+    console.error('Error deleting team:', err instanceof Error ? err.message : err);
     if (err instanceof Error) {
       res.status(500).json({ error: err.message });
     } else {
