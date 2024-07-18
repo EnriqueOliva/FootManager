@@ -1,3 +1,8 @@
+// TODO:
+
+// Revisar en busca de optimizaciones
+
+
 import { Sequelize } from 'sequelize-typescript';
 import dotenv from 'dotenv';
 import User from './models/User';
@@ -14,6 +19,12 @@ const sequelize = new Sequelize({
   username: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   models: [User, League, Team],
+  pool: {
+    max: 10,
+    min: 1,
+    acquire: 30000,
+    idle: 10000
+  }
 });
 
 export default sequelize;

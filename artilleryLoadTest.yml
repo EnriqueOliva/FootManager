@@ -1,0 +1,15 @@
+# Revisar uso de Artillery para pruebas de carga
+
+config:
+  target: 'http://localhost:3000'
+  phases:
+    - duration: 60
+      arrivalRate: 10
+scenarios:
+  - flow:
+      - get:
+          url: '/leagues'
+      - post:
+          url: '/leagues'
+          json:
+            name: 'Test League'
