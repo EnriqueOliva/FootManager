@@ -9,17 +9,14 @@
 // Revisar relación entre tablas
 
 // Revisión de implementación de middlewares
-//// Revisión de JWT
 
 //Revisión de sequelize
 
 // Eliminar comentarios
 
-
-import express, { Request, Response, NextFunction } from 'express';
+import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import axios from 'axios';
 import sequelize from './db';
 import setupSwagger from './swagger';
@@ -49,8 +46,6 @@ sequelize.sync().then(() => {
   console.log('Database & tables created!');
 });
 
-// Secret key for JWT
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 const API_FOOTBALL_KEY = process.env.API_FOOTBALL_KEY || 'your_api_football_key';
 
 // Function to validate team using API-Football
@@ -92,48 +87,6 @@ app.post('/register', async (req: Request, res: Response) => {
   }
 });
 
-// User login endpoint
-app.post('/login', async (req: Request, res: Response) => {
-  const { username, password } = req.body;
-  try {
-    const user = await User.findOne({ where: { username } });
-
-    if (!user) {
-      return res.status(400).json({ error: 'Invalid credentials' });
-    }
-
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      return res.status(400).json({ error: 'Invalid credentials' });
-    }
-
-    const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
-    res.json({ token });
-  } catch (err) {
-    console.error('Error during login:', err);
-    if (err instanceof Error) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.status(500).json({ error: 'Unknown error' });
-    }
-  }
-});
-
-// Middleware to protect routes
-const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
-  const token = req.header('Authorization')?.split(' ')[1];
-  if (!token) {
-    return res.status(401).json({ error: 'Access denied' });
-  }
-  try {
-    const verified = jwt.verify(token, JWT_SECRET);
-    (req as any).user = verified;
-    next();
-  } catch (err) {
-    res.status(400).json({ error: 'Invalid token' });
-  }
-};
-
 // Retrieve a list of leagues
 app.get('/leagues', async (req: Request, res: Response) => {
   try {
@@ -149,7 +102,7 @@ app.get('/leagues', async (req: Request, res: Response) => {
 });
 
 // Create a new league
-app.post('/leagues', authenticateJWT, async (req: Request, res: Response) => {
+app.post('/leagues', async (req: Request, res: Response) => {
   const { name } = req.body;
   try {
     const newLeague = await League.create({ name });
@@ -164,7 +117,7 @@ app.post('/leagues', authenticateJWT, async (req: Request, res: Response) => {
 });
 
 // Delete a league by ID
-app.delete('/leagues/:id', authenticateJWT, async (req: Request, res: Response) => {
+app.delete('/leagues/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
     const league = await League.findByPk(id);
@@ -194,7 +147,7 @@ app.get('/teams', async (req: Request, res: Response) => {
 });
 
 // Create a new team
-app.post('/teams', authenticateJWT, async (req: Request, res: Response) => {
+app.post('/teams', async (req: Request, res: Response) => {
   const { name, country, leagueId } = req.body;
   try {
     const isValidTeam = await validateTeam(name, country);
@@ -239,7 +192,7 @@ app.get('/teams/:id', async (req: Request, res: Response) => {
 });
 
 // Update a team by ID
-app.put('/teams/:id', authenticateJWT, async (req: Request, res: Response) => {
+app.put('/teams/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
   const { name, country, leagueId } = req.body;
   try {
@@ -263,7 +216,7 @@ app.put('/teams/:id', authenticateJWT, async (req: Request, res: Response) => {
 });
 
 // Delete a team by ID
-app.delete('/teams/:id', authenticateJWT, async (req: Request, res: Response) => {
+app.delete('/teams/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
     const team = await Team.findByPk(id);
