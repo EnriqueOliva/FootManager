@@ -1,16 +1,19 @@
-import pgPromise from 'pg-promise';
+import { Sequelize } from 'sequelize-typescript';
 import dotenv from 'dotenv';
+import User from './models/User';
+import League from './models/League';
+import Team from './models/Team';
 
 dotenv.config();
 
-const pgp = pgPromise();
-
-const db = pgp({
+const sequelize = new Sequelize({
+  dialect: 'postgres',
   host: process.env.DB_HOST,
   port: Number(process.env.DB_PORT),
   database: process.env.DB_DATABASE,
-  user: process.env.DB_USER,
+  username: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
+  models: [User, League, Team],
 });
 
-export default db;
+export default sequelize;

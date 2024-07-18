@@ -3,8 +3,11 @@ import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
-import db from './db';
+import sequelize from './db'; // Updated import
 import setupSwagger from './swagger';
+import User from './models/User';
+import League from './models/League';
+import Team from './models/Team';
 
 dotenv.config();
 
@@ -14,6 +17,11 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 
 setupSwagger(app);
+
+// Initialize Sequelize
+sequelize.sync().then(() => {
+  console.log('Database & tables created!');
+});
 
 // Secret key for JWT
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
@@ -77,14 +85,11 @@ app.post('/register', async (req: Request, res: Response) => {
   const { username, password, role } = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = await db.one(
-      'INSERT INTO users(username, password, role) VALUES($1, $2, $3) RETURNING *',
-      [username, hashedPassword, role]
-    );
+    const newUser = await User.create({ username, password: hashedPassword, role });
     res.status(201).json(newUser);
   } catch (err: any) {
     console.error('Error during registration:', err);
-    if (err.code === '23505') {  // Unique violation error code for Postgres
+    if (err.name === 'SequelizeUniqueConstraintError') {  // Unique violation error
       res.status(409).json({ error: 'Username already exists' });
     } else if (err instanceof Error) {
       res.status(500).json({ error: err.message });
@@ -124,7 +129,7 @@ app.post('/register', async (req: Request, res: Response) => {
 app.post('/login', async (req: Request, res: Response) => {
   const { username, password } = req.body;
   try {
-    const user = await db.oneOrNone('SELECT * FROM users WHERE username = $1', [username]);
+    const user = await User.findOne({ where: { username } });
     
     if (!user) {
       console.log(`User with username ${username} not found.`);
@@ -201,7 +206,7 @@ app.get('/protected', authenticateJWT, (req: Request, res: Response) => {
  */
 app.get('/leagues', async (req: Request, res: Response) => {
   try {
-    const leagues = await db.any('SELECT * FROM leagues');
+    const leagues = await League.findAll();
     res.json(leagues);
   } catch (err) {
     if (err instanceof Error) {
@@ -242,10 +247,7 @@ app.get('/leagues', async (req: Request, res: Response) => {
 app.post('/leagues', async (req: Request, res: Response) => {
   const { name } = req.body;
   try {
-    const newLeague = await db.one(
-      'INSERT INTO leagues(name) VALUES($1) RETURNING *',
-      [name]
-    );
+    const newLeague = await League.create({ name });
     res.status(201).json(newLeague);
   } catch (err) {
     if (err instanceof Error) {
@@ -277,12 +279,12 @@ app.post('/leagues', async (req: Request, res: Response) => {
  *                     type: string
  *                   country:
  *                     type: string
- *                   league_id:
+ *                   leagueId:
  *                     type: integer
  */
 app.get('/teams', async (req: Request, res: Response) => {
   try {
-    const teams = await db.any('SELECT * FROM teams');
+    const teams = await Team.findAll();
     res.json(teams);
   } catch (err) {
     if (err instanceof Error) {
@@ -309,7 +311,7 @@ app.get('/teams', async (req: Request, res: Response) => {
  *                 type: string
  *               country:
  *                 type: string
- *               league_id:
+ *               leagueId:
  *                 type: integer
  *     responses:
  *       201:
@@ -325,20 +327,17 @@ app.get('/teams', async (req: Request, res: Response) => {
  *                   type: string
  *                 country:
  *                   type: string
- *                 league_id:
+ *                 leagueId:
  *                   type: integer
  */
 app.post('/teams', async (req: Request, res: Response) => {
-  const { name, country, league_id } = req.body;
+  const { name, country, leagueId } = req.body;
   try {
     const isValidTeam = await validateTeam(name, country);
     if (!isValidTeam) {
       return res.status(400).json({ error: 'Invalid team' });
     }
-    const newTeam = await db.one(
-      'INSERT INTO teams(name, country, league_id) VALUES($1, $2, $3) RETURNING *',
-      [name, country, league_id]
-    );
+    const newTeam = await Team.create({ name, country, leagueId });
     res.status(201).json(newTeam);
   } catch (err) {
     if (err instanceof Error) {
@@ -380,7 +379,7 @@ app.post('/teams', async (req: Request, res: Response) => {
  *                   type: string
  *                 country:
  *                   type: string
- *                 league_id:
+ *                 leagueId:
  *                   type: integer
  */
 app.get('/teams/:id', async (req: Request, res: Response) => {
@@ -388,7 +387,11 @@ app.get('/teams/:id', async (req: Request, res: Response) => {
   const { country } = req.query;
 
   try {
-    const team = await db.one('SELECT * FROM teams WHERE id = $1', [id]);
+    const team = await Team.findByPk(id);
+
+    if (!team) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
 
     if (country && team.country.toLowerCase() !== (country as string).toLowerCase()) {
       return res.status(404).json({ error: 'Team not found in the specified country' });
@@ -427,7 +430,7 @@ app.get('/teams/:id', async (req: Request, res: Response) => {
  *                 type: string
  *               country:
  *                 type: string
- *               league_id:
+ *               leagueId:
  *                 type: integer
  *     responses:
  *       200:
@@ -443,18 +446,23 @@ app.get('/teams/:id', async (req: Request, res: Response) => {
  *                   type: string
  *                 country:
  *                   type: string
- *                 league_id:
+ *                 leagueId:
  *                   type: integer
  */
 app.put('/teams/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, country, league_id } = req.body;
+  const { name, country, leagueId } = req.body;
   try {
-    const updatedTeam = await db.one(
-      'UPDATE teams SET name = $1, country = $2, league_id = $3 WHERE id = $4 RETURNING *',
-      [name, country, league_id, id]
+    const updatedTeam = await Team.update(
+      { name, country, leagueId },
+      { where: { id }, returning: true }
     );
-    res.json(updatedTeam);
+
+    if (!updatedTeam[1][0]) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+
+    res.json(updatedTeam[1][0]);
   } catch (err) {
     if (err instanceof Error) {
       res.status(500).json({ error: err.message });
@@ -490,14 +498,20 @@ app.put('/teams/:id', async (req: Request, res: Response) => {
  *                   type: string
  *                 country:
  *                   type: string
- *                 league_id:
+ *                 leagueId:
  *                   type: integer
  */
 app.delete('/teams/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
-    const deletedTeam = await db.one('DELETE FROM teams WHERE id = $1 RETURNING *', [id]);
-    res.json(deletedTeam);
+    const team = await Team.findByPk(id);
+
+    if (!team) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+
+    await Team.destroy({ where: { id } });
+    res.json(team);
   } catch (err) {
     if (err instanceof Error) {
       res.status(500).json({ error: err.message });
