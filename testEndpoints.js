@@ -1,3 +1,15 @@
+
+// TODO:
+
+// Eliminar estos comentarios
+
+// (Descripción para ser usada en documentación más adelante. Se va a eliminar)
+// Flujo natural en el que los endpoints de borrar equipos y ligas borran los equipos y ligas creados
+// Variables globales para gestionar token y IDs reutilizables en diferentes llamadas API
+// Uso de try-catch en cada test para asegurar la ejecución completa, incluso si uno falla
+// Uso de await para ejecutar los pasos de forma secuencial y asegurar dependencias correctas
+
+
 const axios = require('axios');
 const assert = require('assert');
 
@@ -213,9 +225,3 @@ const testEndpoints = async () => {
 };
 
 testEndpoints();
-
-// TODO: Eliminar estos comentarios
-// Flujo natural en el que los endpoints de borrar equipos y ligas borran los equipos y ligas creados
-// Variables globales para gestionar token y IDs reutilizables en diferentes llamadas API
-// Uso de try-catch en cada test para asegurar la ejecución completa, incluso si uno falla
-// Uso de await para ejecutar los pasos de forma secuencial y asegurar dependencias correctas

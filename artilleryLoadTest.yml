@@ -1,3 +1,5 @@
+# Revisar uso de Artillery para pruebas de carga
+
 config:
   target: 'http://localhost:3000'
   phases:

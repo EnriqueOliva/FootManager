@@ -1,3 +1,21 @@
+// TODO:
+
+// Revisar en busca de optimizaciones
+//// Código innecesario
+//// Código innecesariamente largo
+//// Dividir en archivos más pequeños y claros
+//// Asegurar buena escalabilidad
+
+// Revisar relación entre tablas
+
+// Revisión de implementación de middlewares
+//// Revisión de JWT
+
+//Revisión de sequelize
+
+// Eliminar comentarios
+
+
 import express, { Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
