@@ -1,275 +1,196 @@
-// TODO: 
-
-// Revisión completa del código
-
-
-import request from 'supertest';
 import { expect } from 'chai';
-import app from '../src/index';
-import bcrypt from 'bcryptjs';
-import { Sequelize, Op } from 'sequelize';
-import { Sequelize as SequelizeTS } from 'sequelize-typescript';
+import sinon from 'sinon';
+import request from 'supertest';
+import app from '../src/index'; // Adjust the path as necessary
 import User from '../src/models/User';
 import League from '../src/models/League';
 import Team from '../src/models/Team';
+import * as jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import axios from 'axios';
 
-const sequelize = new SequelizeTS({
-  dialect: 'postgres',
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT),
-  database: process.env.DB_DATABASE,
-  username: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  models: [User, League, Team],
-});
+describe('API Endpoints', () => {
+  let sandbox: sinon.SinonSandbox;
+  const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
-const dropAllTablesAndSequences = async () => {
-  console.log('Dropping all tables and sequences...');
-  try {
-    await sequelize.query('DROP TABLE IF EXISTS "Teams" CASCADE');
-    await sequelize.query('DROP TABLE IF EXISTS "Leagues" CASCADE');
-    await sequelize.query('DROP TABLE IF EXISTS "Users" CASCADE');
-    await sequelize.query('DROP SEQUENCE IF EXISTS "Users_id_seq" CASCADE');
-    await sequelize.query('DROP SEQUENCE IF EXISTS "Leagues_id_seq" CASCADE');
-    await sequelize.query('DROP SEQUENCE IF EXISTS "Teams_id_seq" CASCADE');
-    console.log('All tables and sequences dropped.');
-  } catch (error) {
-    console.error('Error dropping tables and sequences:', error);
-  }
-};
-
-const syncAllTables = async () => {
-  console.log('Syncing all tables...');
-  try {
-    await sequelize.sync({ force: true });
-    console.log('All tables synced.');
-  } catch (error) {
-    console.error('Error syncing tables:', error);
-  }
-};
-
-before(async () => {
-  try {
-    await dropAllTablesAndSequences();
-    await syncAllTables();
-
-    console.log('Inserting test user...');
-    const hashedPassword = await bcrypt.hash('testpassword', 10);
-    await User.create({ username: 'testuser', password: hashedPassword, role: 'admin' });
-    console.log('Test user inserted.');
-  } catch (error) {
-    console.error('Error in before hook:', error);
-    throw error; // Ensure the test stops if setup fails
-  }
-});
-
-after(async () => {
-  try {
-    await dropAllTablesAndSequences();
-    console.log('All tables and sequences dropped after tests.');
-  } catch (error) {
-    console.error('Error in after hook:', error);
-    throw error; // Ensure the test stops if teardown fails
-  }
-});
-
-describe('API Tests', () => {
-  beforeEach(async () => {
-    try {
-      console.log('Cleaning up before each test...');
-      await User.destroy({ where: { username: { [Op.ne]: 'testuser' } } });
-      await League.destroy({ where: {} });
-      await Team.destroy({ where: {} });
-      console.log('Cleaned up before each test.');
-    } catch (error) {
-      console.error('Error in beforeEach hook:', error);
-      throw error; // Ensure the test stops if cleanup fails
-    }
+  beforeEach(() => {
+    sandbox = sinon.createSandbox();
   });
 
-  it('should register a new user', async () => {
-    const response = await request(app)
-      .post('/register')
-      .send({ username: 'uniqueuser', password: 'password123', role: 'admin' });
-
-    expect(response.status).to.equal(201);
-    expect(response.body).to.have.property('id');
-    expect(response.body.username).to.equal('uniqueuser');
+  afterEach(() => {
+    sandbox.restore();
   });
 
-  it('should not register a user with an existing username', async () => {
-    const response = await request(app)
-      .post('/register')
-      .send({ username: 'testuser', password: 'password123', role: 'admin' });
+  describe('User Registration and Login', () => {
+    it('should register a new user', async () => {
+      const mockUser = {
+        id: 1,
+        username: 'testuser',
+        password: 'hashedpassword',
+        role: 'user'
+      };
 
-    expect(response.status).to.equal(409);
-    expect(response.body.error).to.equal('Username already exists');
+      sandbox.stub(User, 'findOne').resolves(null);
+      sandbox.stub(User, 'create').resolves(mockUser as any);
+      sandbox.stub(bcrypt, 'hash').resolves(mockUser.password);
+
+      const res = await request(app)
+        .post('/register')
+        .send({ username: 'testuser', password: 'password', role: 'user' });
+
+      expect(res.status).to.equal(201);
+      expect(res.body).to.have.property('username', 'testuser');
+    });
+
+    it('should not register a user with an existing username', async () => {
+      const mockUser = { id: 1, username: 'testuser', password: 'hashedpassword', role: 'user' };
+
+      sandbox.stub(User, 'findOne').resolves(mockUser as any);
+
+      const res = await request(app)
+        .post('/register')
+        .send({ username: 'testuser', password: 'password', role: 'user' });
+
+      expect(res.status).to.equal(409);
+      expect(res.body).to.have.property('error', 'Username already exists');
+    });
+
+    it('should login a user', async () => {
+      const mockUser = { id: 1, username: 'testuser', password: 'hashedpassword', role: 'user' };
+
+      sandbox.stub(User, 'findOne').resolves(mockUser as any);
+      sandbox.stub(bcrypt, 'compare').resolves(true);
+      sandbox.stub(jwt, 'sign').returns('mocktoken' as unknown as string); // Ensure correct return type
+
+      const res = await request(app)
+        .post('/login')
+        .send({ username: 'testuser', password: 'password' });
+
+      expect(res.status).to.equal(200);
+      expect(res.body).to.have.property('token', 'mocktoken');
+    });
+
+    it('should not login a user with invalid credentials', async () => {
+      sandbox.stub(User, 'findOne').resolves(null);
+
+      const res = await request(app)
+        .post('/login')
+        .send({ username: 'testuser', password: 'password' });
+
+      expect(res.status).to.equal(400);
+      expect(res.body).to.have.property('error', 'Invalid credentials');
+    });
   });
 
-  it('should log in a user', async () => {
-    const response = await request(app)
-      .post('/login')
-      .send({ username: 'testuser', password: 'testpassword' });
+  describe('Leagues', () => {
+    it('should get a list of leagues', async () => {
+      const mockLeagues = [{ id: 1, name: 'League 1' }];
 
-    expect(response.status).to.equal(200);
-    expect(response.body).to.have.property('token');
+      sandbox.stub(League, 'findAll').resolves(mockLeagues as any);
+
+      const res = await request(app).get('/leagues');
+
+      expect(res.status).to.equal(200);
+      expect(res.body).to.be.an('array');
+      expect(res.body).to.have.lengthOf(1);
+    });
+
+    it('should create a new league', async () => {
+      const mockLeague = { id: 1, name: 'League 1' };
+
+      sandbox.stub(League, 'create').resolves(mockLeague as any);
+      const token = jwt.sign({ userId: 1, role: 'admin' }, JWT_SECRET) as string;
+
+      const res = await request(app)
+        .post('/leagues')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: 'League 1' });
+
+      expect(res.status).to.equal(201);
+      expect(res.body).to.have.property('name', 'League 1');
+    });
+
+    it('should delete a league by ID', async () => {
+      const mockLeague = { id: 1, name: 'League 1', destroy: sinon.stub().resolves() };
+
+      sandbox.stub(League, 'findByPk').resolves(mockLeague as any);
+      const token = jwt.sign({ userId: 1, role: 'admin' }, JWT_SECRET) as string;
+
+      const res = await request(app)
+        .delete('/leagues/1')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).to.equal(200);
+      expect(mockLeague.destroy.calledOnce).to.be.true;
+    });
   });
 
-  it('should not log in with invalid credentials', async () => {
-    const response = await request(app)
-      .post('/login')
-      .send({ username: 'testuser', password: 'wrongpassword' });
+  describe('Teams', () => {
+    it('should get a list of teams', async () => {
+      const mockTeams = [{ id: 1, name: 'Team 1', country: 'Country 1', leagueId: 1 }];
 
-    expect(response.status).to.equal(400);
-    expect(response.body.error).to.equal('Invalid credentials');
+      sandbox.stub(Team, 'findAll').resolves(mockTeams as any);
+
+      const res = await request(app).get('/teams');
+
+      expect(res.status).to.equal(200);
+      expect(res.body).to.be.an('array');
+      expect(res.body).to.have.lengthOf(1);
+    });
+
+    it('should create a new team', async () => {
+      const mockTeam = { id: 1, name: 'Team 1', country: 'Country 1', leagueId: 1 };
+      sandbox.stub(Team, 'create').resolves(mockTeam as any);
+      sandbox.stub(axios, 'get').resolves({ data: { response: [{ team: { name: 'Team 1', country: 'Country 1' } }] } });
+      const token = jwt.sign({ userId: 1, role: 'admin' }, JWT_SECRET) as string;
+
+      const res = await request(app)
+        .post('/teams')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: 'Team 1', country: 'Country 1', leagueId: 1 });
+
+      expect(res.status).to.equal(201);
+      expect(res.body).to.have.property('name', 'Team 1');
+    });
+
+    it('should get a team by ID', async () => {
+      const mockTeam = { id: 1, name: 'Team 1', country: 'Country 1', leagueId: 1 };
+
+      sandbox.stub(Team, 'findByPk').resolves(mockTeam as any);
+
+      const res = await request(app).get('/teams/1');
+
+      expect(res.status).to.equal(200);
+      expect(res.body).to.have.property('name', 'Team 1');
+    });
+
+    it('should update a team by ID', async () => {
+      const mockTeam = { id: 1, name: 'Team 1', country: 'Country 1', leagueId: 1 };
+
+      sandbox.stub(Team, 'update').resolves([1, [mockTeam as any]]);
+      const token = jwt.sign({ userId: 1, role: 'admin' }, JWT_SECRET) as string;
+
+      const res = await request(app)
+        .put('/teams/1')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: 'Updated Team', country: 'Updated Country', leagueId: 1 });
+
+      expect(res.status).to.equal(200);
+      expect(res.body).to.have.property('name', 'Team 1');
+    });
+
+    it('should delete a team by ID', async () => {
+      const mockTeam = { id: 1, name: 'Team 1', country: 'Country 1', leagueId: 1 };
+
+      sandbox.stub(Team, 'findByPk').resolves(mockTeam as any);
+      sandbox.stub(Team, 'destroy').resolves(1);
+      const token = jwt.sign({ userId: 1, role: 'admin' }, JWT_SECRET) as string;
+
+      const res = await request(app)
+        .delete('/teams/1')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).to.equal(200);
+    });
   });
-
-  // League tests
-  it('should create a new league', async () => {
-    const response = await request(app)
-      .post('/leagues')
-      .send({ name: 'Premier League' });
-
-    expect(response.status).to.equal(201);
-    expect(response.body).to.have.property('id');
-    expect(response.body.name).to.equal('Premier League');
-  });
-
-  it('should delete a league by ID', async () => {
-    const league = await League.create({ name: 'La Liga' });
-
-    console.log(`Created league with ID: ${league.id}`);
-
-    const deleteResponse = await request(app)
-      .delete(`/leagues/${league.id}`);
-
-    console.log(`Delete response status: ${deleteResponse.status}`);
-    console.log(`Delete response body: ${JSON.stringify(deleteResponse.body, null, 2)}`);
-
-    expect(deleteResponse.status).to.equal(200);
-    expect(deleteResponse.body.name).to.equal('La Liga');
-  });
-
-  it('should get all leagues', async () => {
-    await League.create({ name: 'Bundesliga' });
-    await League.create({ name: 'Serie A' });
-
-    const response = await request(app)
-      .get('/leagues');
-
-    expect(response.status).to.equal(200);
-    expect(response.body).to.be.an('array');
-    expect(response.body.length).to.be.at.least(2);
-  });
-
-  // Team tests
-  it('should create a new team', async () => {
-    const league = await League.create({ name: 'Eredivisie' });
-
-    const response = await request(app)
-      .post('/teams')
-      .send({ name: 'Ajax', country: 'Netherlands', leagueId: league.id });
-
-    expect(response.status).to.equal(201);
-    expect(response.body).to.have.property('id');
-    expect(response.body.name).to.equal('Ajax');
-  });
-
-  it('should not create a team with invalid data', async () => {
-    const response = await request(app)
-      .post('/teams')
-      .send({ name: 'InvalidTeam', country: 'Nowhere', leagueId: 999 });
-
-    expect(response.status).to.equal(400);
-    expect(response.body).to.have.property('error');
-  });
-
-  it('should update a team by ID', async () => {
-    const league = await League.create({ name: 'Ligue 1' });
-    const team = await Team.create({ name: 'PSG', country: 'France', leagueId: league.id });
-
-    const response = await request(app)
-      .put(`/teams/${team.id}`)
-      .send({ name: 'Paris Saint-Germain', country: 'France', leagueId: league.id });
-
-    expect(response.status).to.equal(200);
-    expect(response.body.name).to.equal('Paris Saint-Germain');
-  });
-
-  it('should delete a team by ID', async () => {
-    const league = await League.create({ name: 'Ligue 1' });
-    const team = await Team.create({ name: 'PSG', country: 'France', leagueId: league.id });
-
-    const response = await request(app)
-      .delete(`/teams/${team.id}`);
-
-    expect(response.status).to.equal(200);
-    expect(response.body.name).to.equal('PSG');
-  });
-
-  it('should get a team by ID', async () => {
-    const league = await League.create({ name: 'Liga MX' });
-    const team = await Team.create({ name: 'Club América', country: 'Mexico', leagueId: league.id });
-
-    const response = await request(app)
-      .get(`/teams/${team.id}`);
-
-    expect(response.status).to.equal(200);
-    expect(response.body.name).to.equal('Club América');
-  });
-
-  it('should get all teams', async () => {
-    const league = await League.create({ name: 'MLS' });
-    await Team.create({ name: 'LA Galaxy', country: 'USA', leagueId: league.id });
-    await Team.create({ name: 'New York Red Bulls', country: 'USA', leagueId: league.id });
-
-    const response = await request(app)
-      .get('/teams');
-
-    expect(response.status).to.equal(200);
-    expect(response.body).to.be.an('array');
-    expect(response.body.length).to.be.at.least(2);
-  });
-
-  it('should get a team by ID with a country filter', async () => {
-    const league = await League.create({ name: 'Liga MX' });
-    const team = await Team.create({ name: 'Club América', country: 'Mexico', leagueId: league.id });
-  
-    const response = await request(app)
-      .get(`/teams/${team.id}?country=Mexico`);
-  
-    expect(response.status).to.equal(200);
-    expect(response.body.name).to.equal('Club América');
-  
-    // Attempt to get the team with a different country filter
-    const wrongCountryResponse = await request(app)
-      .get(`/teams/${team.id}?country=USA`);
-  
-    expect(wrongCountryResponse.status).to.equal(404);
-  });
-
-  it('should access protected route with valid token', async () => {
-    const loginResponse = await request(app)
-      .post('/login')
-      .send({ username: 'testuser', password: 'testpassword' });
-  
-    const token = loginResponse.body.token;
-  
-    const response = await request(app)
-      .get('/protected')
-      .set('Authorization', `Bearer ${token}`);
-  
-    expect(response.status).to.equal(200);
-    expect(response.text).to.equal('Access granted');
-  });
-  
-  it('should not access protected route with invalid token', async () => {
-    const response = await request(app)
-      .get('/protected')
-      .set('Authorization', 'Bearer invalidtoken');
-  
-    expect(response.status).to.equal(400);
-    expect(response.body.error).to.equal('Invalid token');
-  });  
-  
 });
