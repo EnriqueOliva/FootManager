@@ -1,5 +1,3 @@
-# Revisar uso de Artillery para pruebas de carga
-
 config:
   target: 'http://localhost:3000'
   phases:
@@ -13,3 +11,11 @@ scenarios:
           url: '/leagues'
           json:
             name: 'Test League'
+      - get:
+          url: '/teams'
+      - post:
+          url: '/teams'
+          json:
+            name: 'Manchester United'
+            country: 'England'
+            leagueId: 1

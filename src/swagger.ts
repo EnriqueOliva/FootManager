@@ -1,6 +1,6 @@
 // TODO: 
 
-// Revisión del uso de Swagger y Express
+// Revisión del uso de Swagger
 
 
 import swaggerJSDoc from 'swagger-jsdoc';

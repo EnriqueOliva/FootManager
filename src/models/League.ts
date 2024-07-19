@@ -1,8 +1,3 @@
-// TODO:
-
-// Revisar en busca de optimizaciones
-
-
 import { Table, Column, Model, PrimaryKey, AutoIncrement, AllowNull } from 'sequelize-typescript';
 
 @Table

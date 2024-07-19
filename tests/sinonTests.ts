@@ -6,7 +6,6 @@ import User from '../src/models/User';
 import League from '../src/models/League';
 import Team from '../src/models/Team';
 
-// Mock the Sequelize models
 const mockUserCreate = sinon.stub(User, 'create');
 const mockLeagueCreate = sinon.stub(League, 'create');
 const mockTeamCreate = sinon.stub(Team, 'create');
@@ -40,7 +39,7 @@ describe('API Tests', function () {
       mockUserCreate.resolves({ id: 1, username: 'testuser', password: 'password123', role: 'user' } as User);
 
       const res = await request(app)
-        .post('/register')
+        .post('/users/register')  // Adjusted path
         .send({ username: 'testuser', password: 'password123', role: 'user' });
 
       expect(res.status).to.equal(201);
@@ -51,7 +50,7 @@ describe('API Tests', function () {
       mockUserFindOne.resolves({ id: 1, username: 'testuser', password: 'password123', role: 'user' } as User);
 
       const res = await request(app)
-        .post('/register')
+        .post('/users/register')  // Adjusted path
         .send({ username: 'testuser', password: 'password123', role: 'user' });
 
       expect(res.status).to.equal(409);
