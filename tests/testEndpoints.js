@@ -32,8 +32,29 @@ const testEndpoints = async () => {
   }
 
   try {
+    let response = await axios.post(`${API_URL}/users/login`, {
+      username: testUsername,
+      password: 'password123'
+    });
+    assert.strictEqual(response.status, 200);
+    console.log('Login (correct case): Passed');
+  } catch (error) {
+    console.log('Login (correct case) failed:', error.response ? error.response.data : error.message);
+  }
+
+  try {
+    await axios.post(`${API_URL}/users/login`, {
+      username: testUsername,
+      password: 'wrongpassword'
+    });
+  } catch (error) {
+    assert.strictEqual(error.response.status, 401);
+    console.log('Login (incorrect case): Passed');
+  }
+
+  try {
     const response = await axios.post(`${API_URL}/leagues`, {
-      name: 'Test League'
+      name: `Test League ${Date.now()}`
     });
     assert.strictEqual(response.status, 201);
     const leagueId = response.data.id;
@@ -42,6 +63,15 @@ const testEndpoints = async () => {
     global.leagueId = leagueId;
   } catch (error) {
     console.log('Create League (correct case) failed:', error.response ? error.response.data : error.message);
+  }
+
+  try {
+    await axios.post(`${API_URL}/leagues`, {
+      name: ' '
+    });
+  } catch (error) {
+    assert.strictEqual(error.response.status, 400);
+    console.log('Create League (incorrect case): Passed');
   }
 
   try {

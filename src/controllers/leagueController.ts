@@ -4,6 +4,13 @@ import League from '../models/League';
 export const createLeague = async (req: Request, res: Response) => {
   const { name } = req.body;
   try {
+    if (!name.trim()) {
+      return res.status(400).json({ error: 'Invalid league name' });
+    }
+    const existingLeague = await League.findOne({ where: { name } });
+    if (existingLeague) {
+      return res.status(400).json({ error: 'League name already exists' });
+    }
     const newLeague = await League.create({ name });
     res.status(201).json(newLeague);
   } catch (err) {
