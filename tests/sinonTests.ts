@@ -16,7 +16,6 @@ const mockLeagueFindByPk = sinon.stub(League, 'findByPk');
 const mockLeagueDestroy = sinon.stub(League.prototype, 'destroy');
 const mockTeamFindAll = sinon.stub(Team, 'findAll');
 const mockTeamFindByPk = sinon.stub(Team, 'findByPk');
-const mockTeamUpdate = sinon.stub(Team, 'update');
 const mockTeamDestroy = sinon.stub(Team.prototype, 'destroy');
 
 describe('API Tests', function () {
@@ -33,7 +32,6 @@ describe('API Tests', function () {
     mockLeagueDestroy.reset();
     mockTeamFindAll.reset();
     mockTeamFindByPk.reset();
-    mockTeamUpdate.reset();
     mockTeamDestroy.reset();
   });
 

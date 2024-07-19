@@ -41,7 +41,19 @@ app.use(express.json());
 
 setupSwagger(app);
 
-// Initialize Sequelize
+// Define relationships
+League.hasMany(Team, {
+  foreignKey: 'leagueId',
+  as: 'teams'
+});
+Team.belongsTo(League, {
+  foreignKey: 'leagueId',
+  as: 'league'
+});
+
+// Add models to Sequelize instance and sync
+sequelize.addModels([User, League, Team]);
+
 sequelize.sync().then(() => {
   console.log('Database & tables created!');
 });

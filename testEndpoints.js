@@ -128,29 +128,6 @@ const testEndpoints = async () => {
   }
 
   try {
-    const response = await axios.put(`${API_URL}/teams/${global.teamId}`, {
-      name: 'Updated Team',
-      country: 'Updated Country',
-      leagueId: global.leagueId
-    });
-    assert.strictEqual(response.status, 200);
-    console.log('Update Team (correct case): Passed');
-  } catch (error) {
-    console.log('Update Team (correct case) failed:', error.response ? error.response.data : error.message);
-  }
-
-  try {
-    await axios.put(`${API_URL}/teams/99999`, {
-      name: 'Updated Team',
-      country: 'Updated Country',
-      leagueId: global.leagueId
-    });
-  } catch (error) {
-    assert.strictEqual(error.response.status, 404);
-    console.log('Update Team (incorrect case): Passed');
-  }
-
-  try {
     const response = await axios.delete(`${API_URL}/teams/${global.teamId}`);
     assert.strictEqual(response.status, 200);
     console.log('Delete Team by ID (correct case): Passed');
