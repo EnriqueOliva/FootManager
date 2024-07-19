@@ -1,11 +1,14 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import request from 'supertest';
-import app from '../src/index';
-import User from '../src/models/User';
-import League from '../src/models/League';
-import Team from '../src/models/Team';
+import app from '../../src/index';
+import User from '../../src/models/User';
+import League from '../../src/models/League';
+import Team from '../../src/models/Team';
 import bcrypt from 'bcryptjs';
+import * as validateTeamService from '../../src/services/validateTeamService';
+
+const mockValidateTeam = sinon.stub(validateTeamService, 'validateTeam').resolves(true);
 
 const mockUserCreate = sinon.stub(User, 'create');
 const mockLeagueCreate = sinon.stub(League, 'create');
@@ -33,6 +36,7 @@ describe('API Tests', function () {
     mockTeamFindAll.reset();
     mockTeamFindByPk.reset();
     mockTeamDestroy.reset();
+    mockValidateTeam.reset();
   });
 
   describe('User Registration', () => {
@@ -163,6 +167,7 @@ describe('API Tests', function () {
     });
 
     it('should create a new team', async () => {
+      mockValidateTeam.resolves(true);
       mockTeamCreate.resolves({ id: 1, name: 'Real Madrid', country: 'Spain', leagueId: 1 } as Team);
 
       const res = await request(app)
