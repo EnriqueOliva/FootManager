@@ -27,4 +27,7 @@ const sequelize = new Sequelize({
   }
 });
 
+League.hasMany(Team, { foreignKey: 'leagueId' });
+Team.belongsTo(League, { foreignKey: 'leagueId' });
+
 export default sequelize;
