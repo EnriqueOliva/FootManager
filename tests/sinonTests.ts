@@ -5,6 +5,7 @@ import app from '../src/index';
 import User from '../src/models/User';
 import League from '../src/models/League';
 import Team from '../src/models/Team';
+import bcrypt from 'bcryptjs';
 
 const mockUserCreate = sinon.stub(User, 'create');
 const mockLeagueCreate = sinon.stub(League, 'create');
@@ -39,7 +40,7 @@ describe('API Tests', function () {
       mockUserCreate.resolves({ id: 1, username: 'testuser', password: 'password123', role: 'user' } as User);
 
       const res = await request(app)
-        .post('/users/register')  // Adjusted path
+        .post('/users/register')
         .send({ username: 'testuser', password: 'password123', role: 'user' });
 
       expect(res.status).to.equal(201);
@@ -50,10 +51,48 @@ describe('API Tests', function () {
       mockUserFindOne.resolves({ id: 1, username: 'testuser', password: 'password123', role: 'user' } as User);
 
       const res = await request(app)
-        .post('/users/register')  // Adjusted path
+        .post('/users/register')
         .send({ username: 'testuser', password: 'password123', role: 'user' });
 
       expect(res.status).to.equal(409);
+    });
+  });
+
+  describe('User Login', () => {
+    it('should login a user with correct credentials', async () => {
+      const hashedPassword = await bcrypt.hash('password123', 10);
+      mockUserFindOne.resolves({ id: 1, username: 'testuser', password: hashedPassword, role: 'user' } as User);
+
+      const res = await request(app)
+        .post('/users/login')
+        .send({ username: 'testuser', password: 'password123' });
+
+      expect(res.status).to.equal(200);
+      expect(res.body).to.have.property('message', 'Login successful');
+      expect(res.body.user).to.have.property('username', 'testuser');
+    });
+
+    it('should not login a user with incorrect password', async () => {
+      const hashedPassword = await bcrypt.hash('password123', 10);
+      mockUserFindOne.resolves({ id: 1, username: 'testuser', password: hashedPassword, role: 'user' } as User);
+
+      const res = await request(app)
+        .post('/users/login')
+        .send({ username: 'testuser', password: 'wrongpassword' });
+
+      expect(res.status).to.equal(401);
+      expect(res.body).to.have.property('error', 'Invalid password');
+    });
+
+    it('should not login a non-existent user', async () => {
+      mockUserFindOne.resolves(null);
+
+      const res = await request(app)
+        .post('/users/login')
+        .send({ username: 'nonexistentuser', password: 'password123' });
+
+      expect(res.status).to.equal(404);
+      expect(res.body).to.have.property('error', 'User not found');
     });
   });
 
@@ -77,6 +116,27 @@ describe('API Tests', function () {
 
       expect(res.status).to.equal(201);
       expect(res.body).to.have.property('name', 'La Liga');
+    });
+
+    it('should not create a new league with an existing name', async () => {
+      mockLeagueFindAll.resolves([{ id: 1, name: 'Premier League' }] as League[]);
+      mockLeagueCreate.rejects(new Error('League name already exists'));
+
+      const res = await request(app)
+        .post('/leagues')
+        .send({ name: 'Premier League' });
+
+      expect(res.status).to.equal(400);
+      expect(res.body).to.have.property('error', 'League name already exists');
+    });
+
+    it('should not create a new league with an invalid name', async () => {
+      const res = await request(app)
+        .post('/leagues')
+        .send({ name: ' ' });
+
+      expect(res.status).to.equal(400);
+      expect(res.body).to.have.property('error', 'Invalid league name');
     });
 
     it('should delete a league by ID', async () => {
