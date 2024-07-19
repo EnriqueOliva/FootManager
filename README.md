@@ -1,2 +1,2 @@
 # FootManager
-API RESTful para información sobre equipos de fútbol
+README a ser realizado al final del proyecto

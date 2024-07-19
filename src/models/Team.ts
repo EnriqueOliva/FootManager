@@ -1,8 +1,3 @@
-// TODO:
-
-// Revisar en busca de optimizaciones
-
-
 import { Table, Column, Model, PrimaryKey, AutoIncrement, AllowNull, ForeignKey } from 'sequelize-typescript';
 import League from './League';
 
