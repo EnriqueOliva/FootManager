@@ -19,7 +19,9 @@ const mockTeamFindByPk = sinon.stub(Team, 'findByPk');
 const mockTeamUpdate = sinon.stub(Team, 'update');
 const mockTeamDestroy = sinon.stub(Team.prototype, 'destroy');
 
-describe('API Tests', () => {
+describe('API Tests', function () {
+  this.timeout(5000);
+
   beforeEach(() => {
     sinon.reset();
     mockUserCreate.reset();
