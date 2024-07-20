@@ -1,39 +1,35 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import Team from '../models/Team';
 import { validateTeam } from '../services/validateTeamService';
+import customError from '../utils/customError';
+import logger from '../utils/logger';
 
-export const createTeam = async (req: Request, res: Response) => {
+export const createTeam = async (req: Request, res: Response, next: NextFunction) => {
   const { name, country, leagueId } = req.body;
   try {
     const isValidTeam = await validateTeam(name, country);
     if (!isValidTeam) {
-      return res.status(400).json({ error: 'Invalid team' });
+      return next(new customError('Invalid team', 400));
     }
     const newTeam = await Team.create({ name, country, leagueId });
     res.status(201).json(newTeam);
-  } catch (err) {
-    if (err instanceof Error) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.status(500).json({ error: 'Unknown error' });
-    }
+  } catch (err: any) {
+    logger.error('Error creating team:', err);
+    next(err);
   }
 };
 
-export const getTeams = async (req: Request, res: Response) => {
+export const getTeams = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const teams = await Team.findAll();
     res.json(teams);
-  } catch (err) {
-    if (err instanceof Error) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.status(500).json({ error: 'Unknown error' });
-    }
+  } catch (err: any) {
+    logger.error('Error fetching teams:', err);
+    next(err);
   }
 };
 
-export const getTeamById = async (req: Request, res: Response) => {
+export const getTeamById = async (req: Request, res: Response, next: NextFunction) => {
   const { id } = req.params;
   const { country } = req.query;
 
@@ -41,24 +37,21 @@ export const getTeamById = async (req: Request, res: Response) => {
     const team = await Team.findByPk(id);
 
     if (!team) {
-      return res.status(404).json({ error: 'Team not found' });
+      return next(new customError('Team not found', 404));
     }
 
     if (country && team.country.toLowerCase() !== (country as string).toLowerCase()) {
-      return res.status(404).json({ error: 'Team not found in the specified country' });
+      return next(new customError('Team not found in the specified country', 404));
     }
 
     res.json(team);
-  } catch (err) {
-    if (err instanceof Error) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.status(500).json({ error: 'Unknown error' });
-    }
+  } catch (err: any) {
+    logger.error('Error fetching team by ID:', err);
+    next(err);
   }
 };
 
-export const updateTeam = async (req: Request, res: Response) => {
+export const updateTeam = async (req: Request, res: Response, next: NextFunction) => {
   const { id } = req.params;
   const { name, country, leagueId } = req.body;
   try {
@@ -68,36 +61,29 @@ export const updateTeam = async (req: Request, res: Response) => {
     );
 
     if (!updatedTeam[1][0]) {
-      return res.status(404).json({ error: 'Team not found' });
+      return next(new customError('Team not found', 404));
     }
 
     res.json(updatedTeam[1][0]);
-  } catch (err) {
-    if (err instanceof Error) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.status(500).json({ error: 'Unknown error' });
-    }
+  } catch (err: any) {
+    logger.error('Error updating team:', err);
+    next(err);
   }
 };
 
-export const deleteTeam = async (req: Request, res: Response) => {
+export const deleteTeam = async (req: Request, res: Response, next: NextFunction) => {
   const { id } = req.params;
   try {
     const team = await Team.findByPk(id);
 
     if (!team) {
-      return res.status(404).json({ error: 'Team not found' });
+      return next(new customError('Team not found', 404));
     }
 
     await Team.destroy({ where: { id } });
     res.json(team);
-  } catch (err) {
-    console.error('Error deleting team:', err instanceof Error ? err.message : err);
-    if (err instanceof Error) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.status(500).json({ error: 'Unknown error' });
-    }
+  } catch (err: any) {
+    logger.error('Error deleting team:', err);
+    next(err);
   }
 };

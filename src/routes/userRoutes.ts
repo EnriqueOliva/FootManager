@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { registerUser, loginUser } from '../controllers/userController';
+import { body } from 'express-validator';
+import validateRequest from '../middleware/validateRequest';
 
 const router = Router();
 
@@ -28,16 +30,41 @@ const router = Router();
  *                 example: password123
  *               role:
  *                 type: string
- *                 example: user
+ *                 example: admin
  *     responses:
  *       201:
  *         description: The user was registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                   example: 1
+ *                 username:
+ *                   type: string
+ *                   example: testuser
+ *                 role:
+ *                   type: string
+ *                   example: admin
  *       409:
  *         description: Username already exists
+ *       400:
+ *         description: Validation error
  *       500:
  *         description: Server error
  */
-router.post('/register', registerUser);
+router.post(
+  '/register',
+  [
+    body('username').notEmpty().withMessage('Username is required'),
+    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
+    body('role').notEmpty().withMessage('Role is required')
+  ],
+  validateRequest,
+  registerUser
+);
 
 /**
  * @swagger
@@ -64,13 +91,43 @@ router.post('/register', registerUser);
  *     responses:
  *       200:
  *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Login successful
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     username:
+ *                       type: string
+ *                       example: testuser
+ *                     role:
+ *                       type: string
+ *                       example: admin
  *       401:
  *         description: Invalid password
  *       404:
  *         description: User not found
+ *       400:
+ *         description: Validation error
  *       500:
  *         description: Server error
  */
-router.post('/login', loginUser);
+router.post(
+  '/login',
+  [
+    body('username').notEmpty().withMessage('Username is required'),
+    body('password').notEmpty().withMessage('Password is required')
+  ],
+  validateRequest,
+  loginUser
+);
 
 export default router;

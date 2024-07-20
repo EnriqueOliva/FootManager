@@ -7,13 +7,17 @@ import setupSwagger from './swagger';
 import userRoutes from './routes/userRoutes';
 import leagueRoutes from './routes/leagueRoutes';
 import teamRoutes from './routes/teamRoutes';
+import errorHandler from './middleware/errorHandler';
+import logger from './utils/logger';
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(morgan('combined'));
+// Configure morgan to use Winston for logging
+app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
+
 app.use(compression());
 app.use(express.json());
 
@@ -23,19 +27,8 @@ app.use('/users', userRoutes);
 app.use('/leagues', leagueRoutes);
 app.use('/teams', teamRoutes);
 
-import League from './models/League';
-import Team from './models/Team';
-
-League.hasMany(Team, {
-  foreignKey: 'leagueId',
-  as: 'teams'
-});
-Team.belongsTo(League, {
-  foreignKey: 'leagueId',
-  as: 'league'
-});
-
-sequelize.addModels([League, Team]);
+// Use error handler middleware
+app.use(errorHandler);
 
 sequelize.sync().then(() => {
   console.log('Database & tables created!');

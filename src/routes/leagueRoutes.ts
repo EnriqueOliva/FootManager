@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { createLeague, getLeagues, deleteLeague } from '../controllers/leagueController';
+import { body, param } from 'express-validator';
+import validateRequest from '../middleware/validateRequest';
 
 const router = Router();
 
@@ -24,10 +26,19 @@ const router = Router();
  *     responses:
  *       201:
  *         description: The league was created successfully
+ *       400:
+ *         description: Validation error
  *       500:
  *         description: Server error
  */
-router.post('/', createLeague);
+router.post(
+  '/',
+  [
+    body('name').notEmpty().withMessage('League name is required')
+  ],
+  validateRequest,
+  createLeague
+);
 
 /**
  * @swagger
@@ -72,11 +83,31 @@ router.get('/', getLeagues);
  *     responses:
  *       200:
  *         description: The league was deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                   example: 1
+ *                 name:
+ *                   type: string
+ *                   example: Premier League
  *       404:
  *         description: The league was not found
+ *       400:
+ *         description: Validation error
  *       500:
  *         description: Server error
  */
-router.delete('/:id', deleteLeague);
+router.delete(
+  '/:id',
+  [
+    param('id').isInt().withMessage('Invalid league ID')
+  ],
+  validateRequest,
+  deleteLeague
+);
 
 export default router;
