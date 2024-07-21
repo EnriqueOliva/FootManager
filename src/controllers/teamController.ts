@@ -12,11 +12,7 @@ export const createTeam = async (req: Request, res: Response) => {
     const newTeam = await Team.create({ name, country, leagueId });
     res.status(201).json(newTeam);
   } catch (err) {
-    if (err instanceof Error) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.status(500).json({ error: 'Unknown error' });
-    }
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });
   }
 };
 
@@ -25,11 +21,7 @@ export const getTeams = async (req: Request, res: Response) => {
     const teams = await Team.findAll();
     res.json(teams);
   } catch (err) {
-    if (err instanceof Error) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.status(500).json({ error: 'Unknown error' });
-    }
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });
   }
 };
 
@@ -50,11 +42,7 @@ export const getTeamById = async (req: Request, res: Response) => {
 
     res.json(team);
   } catch (err) {
-    if (err instanceof Error) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.status(500).json({ error: 'Unknown error' });
-    }
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });
   }
 };
 
@@ -73,11 +61,7 @@ export const updateTeam = async (req: Request, res: Response) => {
 
     res.json(updatedTeam[1][0]);
   } catch (err) {
-    if (err instanceof Error) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.status(500).json({ error: 'Unknown error' });
-    }
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });
   }
 };
 
@@ -90,14 +74,10 @@ export const deleteTeam = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Team not found' });
     }
 
-    await Team.destroy({ where: { id } });
+    await team.destroy();
     res.json(team);
   } catch (err) {
     console.error('Error deleting team:', err instanceof Error ? err.message : err);
-    if (err instanceof Error) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.status(500).json({ error: 'Unknown error' });
-    }
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });
   }
 };

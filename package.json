@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "ts-mocha -p tsconfig.json tests/**/*.ts",
+    "test": "mocha -r ts-node/register tests/sinon/**/*.test.ts",
     "start": "ts-node src/index.ts"
   },
   "keywords": [],
@@ -43,7 +43,7 @@
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.6",
     "chai": "^4.4.1",
-    "mocha": "^10.6.0",
+    "mocha": "^10.7.0",
     "sinon": "^18.0.0",
     "sinon-chai": "^3.7.0",
     "supertest": "^7.0.0",
