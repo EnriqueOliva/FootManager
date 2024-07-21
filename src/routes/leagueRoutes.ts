@@ -1,5 +1,7 @@
 import { Router } from 'express';
+import { body, param } from 'express-validator';
 import { createLeague, getLeagues, deleteLeague } from '../controllers/leagueController';
+import { validateRequest } from '../middleware/validateRequest';
 
 const router = Router();
 
@@ -24,10 +26,19 @@ const router = Router();
  *     responses:
  *       201:
  *         description: The league was created successfully
+ *       400:
+ *         description: Invalid league name
  *       500:
  *         description: Server error
  */
-router.post('/', createLeague);
+router.post(
+  '/',
+  [
+    body('name').notEmpty().withMessage('Name is required'),
+  ],
+  validateRequest,
+  createLeague
+);
 
 /**
  * @swagger
@@ -77,6 +88,13 @@ router.get('/', getLeagues);
  *       500:
  *         description: Server error
  */
-router.delete('/:id', deleteLeague);
+router.delete(
+  '/:id',
+  [
+    param('id').isInt().withMessage('ID must be an integer'),
+  ],
+  validateRequest,
+  deleteLeague
+);
 
 export default router;
