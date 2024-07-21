@@ -14,11 +14,7 @@ export const createLeague = async (req: Request, res: Response) => {
     const newLeague = await League.create({ name });
     res.status(201).json(newLeague);
   } catch (err) {
-    if (err instanceof Error) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.status(500).json({ error: 'Unknown error' });
-    }
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });
   }
 };
 
@@ -27,11 +23,7 @@ export const getLeagues = async (req: Request, res: Response) => {
     const leagues = await League.findAll();
     res.json(leagues);
   } catch (err) {
-    if (err instanceof Error) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.status(500).json({ error: 'Unknown error' });
-    }
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });
   }
 };
 
