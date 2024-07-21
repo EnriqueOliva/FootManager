@@ -1,5 +1,7 @@
 import { Router } from 'express';
+import { body } from 'express-validator';
 import { registerUser, loginUser } from '../controllers/userController';
+import { validateRequest } from '../middleware/validateRequest';
 
 const router = Router();
 
@@ -37,7 +39,16 @@ const router = Router();
  *       500:
  *         description: Server error
  */
-router.post('/register', registerUser);
+router.post(
+  '/register',
+  [
+    body('username').notEmpty().withMessage('Username is required'),
+    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
+    body('role').notEmpty().withMessage('Role is required'),
+  ],
+  validateRequest,
+  registerUser
+);
 
 /**
  * @swagger
@@ -71,6 +82,14 @@ router.post('/register', registerUser);
  *       500:
  *         description: Server error
  */
-router.post('/login', loginUser);
+router.post(
+  '/login',
+  [
+    body('username').notEmpty().withMessage('Username is required'),
+    body('password').notEmpty().withMessage('Password is required'),
+  ],
+  validateRequest,
+  loginUser
+);
 
 export default router;

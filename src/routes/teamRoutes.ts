@@ -1,5 +1,7 @@
 import { Router } from 'express';
+import { body, param } from 'express-validator';
 import { createTeam, getTeams, getTeamById, updateTeam, deleteTeam } from '../controllers/teamController';
+import { validateRequest } from '../middleware/validateRequest';
 
 const router = Router();
 
@@ -37,7 +39,16 @@ const router = Router();
  *       500:
  *         description: Server error
  */
-router.post('/', createTeam);
+router.post(
+  '/',
+  [
+    body('name').notEmpty().withMessage('Name is required'),
+    body('country').notEmpty().withMessage('Country is required'),
+    body('leagueId').isInt().withMessage('League ID must be an integer'),
+  ],
+  validateRequest,
+  createTeam
+);
 
 /**
  * @swagger
@@ -110,7 +121,14 @@ router.get('/', getTeams);
  *       500:
  *         description: Server error
  */
-router.get('/:id', getTeamById);
+router.get(
+  '/:id',
+  [
+    param('id').isInt().withMessage('ID must be an integer'),
+  ],
+  validateRequest,
+  getTeamById
+);
 
 /**
  * @swagger
@@ -149,7 +167,17 @@ router.get('/:id', getTeamById);
  *       500:
  *         description: Server error
  */
-router.put('/:id', updateTeam);
+router.put(
+  '/:id',
+  [
+    param('id').isInt().withMessage('ID must be an integer'),
+    body('name').optional().notEmpty().withMessage('Name cannot be empty'),
+    body('country').optional().notEmpty().withMessage('Country cannot be empty'),
+    body('leagueId').optional().isInt().withMessage('League ID must be an integer'),
+  ],
+  validateRequest,
+  updateTeam
+);
 
 /**
  * @swagger
@@ -172,6 +200,13 @@ router.put('/:id', updateTeam);
  *       500:
  *         description: Server error
  */
-router.delete('/:id', deleteTeam);
+router.delete(
+  '/:id',
+  [
+    param('id').isInt().withMessage('ID must be an integer'),
+  ],
+  validateRequest,
+  deleteTeam
+);
 
 export default router;
