@@ -24,6 +24,6 @@
     "useUnknownInCatchVariables": true,                  /* Default catch clause variables as 'unknown' instead of 'any'. */
     "skipLibCheck": true                                 /* Skip type checking all .d.ts files. */
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts"],            /* Specify the set of files to be included in the program. */
-  "exclude": ["node_modules", "cypress/**/*.js"]         /* Specify the set of files to be excluded from the program. */
+  "include": ["src/**/*.ts", "tests/**/*.ts", "cypress/**/*.ts"],            /* Specify the set of files to be included in the program. */
+  "exclude": ["node_modules"]         /* Specify the set of files to be excluded from the program. */
 }
