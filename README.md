@@ -45,14 +45,11 @@ API_FOOTBALL_KEY=<Clave de API-Football válida>
 
 ## Ejecutar el Proyecto Localmente
 
-1. Configurar PostgreSQL con Docker:
+1. Correr Docker:
  ```
-docker run --name football-db -e POSTGRES_DB=footmanager -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=8492 -d -p 5432:5432 postgres
+docker-compose up --build
 ```
-2. Iniciar el servidor:
-   ```
-   npm start
-   ```
+El servidor estará corriendo en `http://localhost:3000`
 
 ## Ejecutar las pruebas
 
