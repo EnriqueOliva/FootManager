@@ -23,6 +23,10 @@ app.use('/users', userRoutes);
 app.use('/leagues', leagueRoutes);
 app.use('/teams', teamRoutes);
 
+app.get('/', (req, res) => {
+  res.send('Welcome to the Football Manager API');
+});
+
 import League from './models/League';
 import Team from './models/Team';
 
