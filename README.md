@@ -70,13 +70,11 @@ El servidor estará corriendo en `http://localhost:3000`
 
 La API está documentada usando Swagger. Para interactuar con la API:
 
-1. Iniciar el servidor:
-   ```
-   npm start
-   ```
-2. Abrir navegador y navegar a `http://localhost:3000/api-docs`
+* Abrir navegador y navegar a `http://localhost:3000/api-docs`
 
 Swagger brinda documentación para todos los endpoints, incluyendo ejemplos de solicitudes y respuestas.
+
+Nota: El servidor se ejecuta con `npm start`, pero en principio esto no es necesario si se utiliza `docker-compose up --build`
 
 ## Requisitos Funcionales y No Funcionales
 
