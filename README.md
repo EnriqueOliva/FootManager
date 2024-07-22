@@ -33,7 +33,7 @@ Este proyecto es una API RESTful construida con Node.js, Express y TypeScript pa
 
 ## Configuración
 
-Configurar las variables de entorno creando un archivo .env en el directorio raíz con el siguiente contenido:
+1. Configurar las variables de entorno creando un archivo .env en el directorio raíz con el siguiente contenido:
  ```
 DB_USER=postgres
 DB_PASSWORD=8492
@@ -42,6 +42,7 @@ DB_PORT=5432
 DB_DATABASE=footmanager
 API_FOOTBALL_KEY=<Clave de API-Football válida>
  ```
+2. Agregar la clave de API-Football en el archivo docker-compose.yml, en la variable `API_FOOTBALL_KEY:`
 
 ## Ejecutar el Proyecto Localmente
 
