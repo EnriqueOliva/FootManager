@@ -10,7 +10,9 @@ services:
       DB_USER: postgres
       DB_PASSWORD: 8492
       DB_DATABASE: footmanager
-      API_FOOTBALL_KEY: 2d2c7fbcfab3bc3e599e453d1fcbbfaa
+      API_FOOTBALL_KEY: ${API_FOOTBALL_KEY}
+    env_file:
+      - .env
     depends_on:
       - db
 
